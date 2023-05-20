@@ -65,12 +65,7 @@ m = np.zeros(len(w), dtype=np.float32)
 for i in range(len(w)):
     m[i] = a[math.floor(w[i] * 20)]
 
-fig = plt.figure(figsize=(10, 10))
-ax1 = fig.add_subplot(3, 1, 1)
-ax1.set_title('generate Random Binary signal', fontsize=20)
-plt.axis([0, size, -0.5, 1.5])
-plt.plot(w, m, 'b')
-fig.tight_layout(h_pad=2.5)
+
 
 # /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 fc = 100  # Несущая частота
@@ -79,6 +74,7 @@ coherent_carrier = np.cos(np.dot(2 * pi * fc, ts))
 
 bpsk = np.cos(np.dot(2 * pi * fc, ts) + pi * (m - 1) + pi / 4)
 bpsk = list(bpsk)
+
 
 for i_zeroes in range(zeroes):  # Добивание нулями
     bpsk.append(0)
@@ -90,7 +86,7 @@ bpsk_fft = scipy.fft.fft(bpsk)  # Сигнал bpsk после прямого п
 bpsk_zeroes = 0
 
 for i_fft in range(int(len(bpsk_fft) / 2)):  # занулене
-    if isinstance(q[i_fft], complex):
+    if isinstance(q[i_fft], complex): # если значение q для значения спектра излучённого сигнала явл комплексным, то значение спектра зануляется
         bpsk_fft[i_fft] = 0
     if 2 * pi * w_freq[i_fft] / q[i_fft].real + 0.0000000001 > 1700:
         bpsk_fft[i_fft] = 0
@@ -110,6 +106,26 @@ for i4 in range(len(bpsk_fft)):
 
 
 sign_ifft = scipy.fft.ifft(sign)  # Принятый сигнал после обратного преобразования Фурье
+sign_ifft_demodulation = []
+
+for i_demodulation in range(len(sign_ifft)):
+   sign_ifft_demodulation.append(sign_ifft[i_demodulation] * -np.cos(2 * pi * fc * new_w[i_demodulation]))
+
+temp = 0
+
+for i_demodulation_2 in range(len(sign_ifft_demodulation)):
+    if i_demodulation_2 + 50 < len(sign_ifft_demodulation):
+        for i_ten in range(50):
+            temp += sign_ifft_demodulation[i_demodulation_2 + i_ten]
+    else:
+        for i_ten in range(50):
+            temp += sign_ifft_demodulation[i_demodulation_2 - i_ten]
+    sign_ifft_demodulation[i_demodulation_2] = temp / 50
+    temp = 0
+
+
+
+
 # sign_ifft = np.real(sign_ifft)
 
 #for i_printer in range(len(sign_ifft)):
@@ -124,15 +140,26 @@ sign_ifft = scipy.fft.ifft(sign)  # Принятый сигнал после о�
 #    if  40000 > i_temp > 20000:
 #        print(str(i_temp) + ":" + str(sign_ifft[i_temp]))
 
+fig = plt.figure(figsize=(10, 10))
+ax1 = fig.add_subplot(4, 1, 1)
+ax1.set_title('generate Random Binary signal', fontsize=20)
+plt.axis([0, 0.3, -0.5, 1.5])
+plt.plot(w, m, 'b')
+fig.tight_layout(h_pad=2.5)
 
-ax2 = fig.add_subplot(3, 1, 2)
+
+ax2 = fig.add_subplot(4, 1, 2)
 ax2.set_title('BPSK Modulation', fontsize=20)  # , fontproperties=zhfont1
-plt.axis([0, 56, -1.5, 1.5])
+plt.axis([0, 0.3, -1.5, 1.5])
 plt.plot(new_w, bpsk, 'r')
 
-ax3 = fig.add_subplot(3, 1, 3)
+ax3 = fig.add_subplot(4, 1, 3)
 ax3.set_title('Принятый сигнал' + " (" + str(length) + "м)", fontsize=20)  # , fontproperties=zhfont1
-plt.axis([0, 56, -2, 2])
+plt.axis([length / c, length / c + 0.3, -2, 2])
 plt.plot(new_w, sign_ifft, 'g')
 
+ax4 = fig.add_subplot(4, 1, 4)
+ax4.set_title('Демодуляция' + " (" + str(length) + "м)", fontsize=20)
+plt.axis([length / c, length / c + 0.3, -2, 2])
+plt.plot(new_w, sign_ifft_demodulation, 'y')
 plt.show()
