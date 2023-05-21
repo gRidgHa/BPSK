@@ -1,3 +1,5 @@
+from statistics import mean
+
 import numpy as np
 from math import pi
 import matplotlib.pyplot as plt
@@ -11,10 +13,10 @@ sampling_t = 0.0005  # шаг в 0.0005 секунду
 sampling_freq = 1 / sampling_t  # частота дискретизации
 n = int(size / sampling_t)
 
-length = 5000  # длина
+length = 10000  # длина
 c = 1500  # Скорость звука
 h = 100  # Глубина 100м
-l = 2  # Номер моды
+l = 1  # Номер моды
 
 w = []
 w_freq = []
@@ -112,21 +114,60 @@ temp = 0
 method_of_avg = []
 
 for i_demodulation_2 in range(len(sign_ifft_demodulation)):  # метод скользящей средней
-    if i_demodulation_2 + 50 < len(sign_ifft_demodulation):
-        for i_ten in range(50):
+    if i_demodulation_2 + 10 < len(sign_ifft_demodulation):
+        for i_ten in range(10):
             temp += sign_ifft_demodulation[i_demodulation_2 + i_ten]
     else:
-        for i_ten in range(50):
+        for i_ten in range(10):
             temp += sign_ifft_demodulation[i_demodulation_2 - i_ten]
-    method_of_avg.append(temp / 50)
+    method_of_avg.append(temp / 10)
     temp = 0
 
 demodulated_signal = []
 for i_demodulation_3 in range(len(method_of_avg)):
-    if method_of_avg[i_demodulation_3] >= 0:
+    if method_of_avg[i_demodulation_3] >= 0.01:
         demodulated_signal.append(1)
     else:
         demodulated_signal.append(0)
+
+
+counter = 0
+amount = 0
+final_array = []
+temp_final_array = []
+zero_or_one = demodulated_signal[int(length / c * sampling_freq) + 1]
+
+#for i_demodulation_4 in range(len(demodulated_signal)): # Получение массива 0 и 1 из демодулированного сигнала
+#    if i_demodulation_4 > length / c * sampling_freq and i_demodulation_4 < length / c * sampling_freq + size * sampling_freq:
+hundred = 0
+for i_demodulation_4 in range(size * 20):
+    final_array.append(demodulated_signal[int(length / c * sampling_freq) + 50 + hundred])
+    hundred += 100
+
+
+yes = 0
+no = 0
+for i_checking in range(len(final_array)):
+    if final_array[i_checking] == a[i_checking]:
+        yes += 1
+    else:
+        no += 1
+print(len(final_array))
+print("Совпавшие значения" + ":" + str(yes))
+print("Ошибки" + ":" + str(no))
+
+for teast_i in range(len(final_array)):
+    if final_array[teast_i] == a[teast_i]:
+        answer = "YES"
+    else:
+        answer = "NO"
+    print(str(a[teast_i]) + "  " + str(final_array[teast_i]) + " : " + answer)
+
+
+
+
+
+
 
 
 start = 0
