@@ -11,10 +11,10 @@ sampling_t = 0.0005  # шаг в 0.0005 секунду
 sampling_freq = 1 / sampling_t  # частота дискретизации
 n = int(size / sampling_t)
 
-length = 30000  # длина
+length = 5000  # длина
 c = 1500  # Скорость звука
 h = 100  # Глубина 100м
-l = 1  # Номер моды
+l = 2  # Номер моды
 
 w = []
 w_freq = []
@@ -23,7 +23,7 @@ q = []
 fi = []  # фазовый набег
 new_w = []
 zeroes = int(length / c * (1 / sampling_t)) * 2
-#zeroes = 0
+# zeroes = 0
 
 for i0 in range(n):
     if i0 == 0:
@@ -65,8 +65,6 @@ m = np.zeros(len(w), dtype=np.float32)
 for i in range(len(w)):
     m[i] = a[math.floor(w[i] * 20)]
 
-
-
 # /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 fc = 100  # Несущая частота
 ts = np.arange(0, (30000) / sampling_freq, 1 / sampling_freq)
@@ -74,7 +72,6 @@ coherent_carrier = np.cos(np.dot(2 * pi * fc, ts))
 
 bpsk = np.cos(np.dot(2 * pi * fc, ts) + pi * (m - 1) + pi / 4)
 bpsk = list(bpsk)
-
 
 for i_zeroes in range(zeroes):  # Добивание нулями
     bpsk.append(0)
@@ -86,7 +83,8 @@ bpsk_fft = scipy.fft.fft(bpsk)  # Сигнал bpsk после прямого п
 bpsk_zeroes = 0
 
 for i_fft in range(int(len(bpsk_fft) / 2)):  # занулене
-    if isinstance(q[i_fft], complex): # если значение q для значения спектра излучённого сигнала явл комплексным, то значение спектра зануляется
+    if isinstance(q[i_fft],
+                  complex):  # если значение q для значения спектра излучённого сигнала явл комплексным, то значение спектра зануляется
         bpsk_fft[i_fft] = 0
     if 2 * pi * w_freq[i_fft] / q[i_fft].real + 0.0000000001 > 1700:
         bpsk_fft[i_fft] = 0
@@ -104,62 +102,66 @@ for i4 in range(len(bpsk_fft)):
     if i4 == len(bpsk_fft) / 2:
         sign[i4] = 0
 
-
 sign_ifft = scipy.fft.ifft(sign)  # Принятый сигнал после обратного преобразования Фурье
 sign_ifft_demodulation = []
 
 for i_demodulation in range(len(sign_ifft)):
-   sign_ifft_demodulation.append(sign_ifft[i_demodulation] * -np.cos(2 * pi * fc * new_w[i_demodulation]))
+    sign_ifft_demodulation.append(sign_ifft[i_demodulation] * np.cos(2 * pi * fc * new_w[i_demodulation]))
 
 temp = 0
+method_of_avg = []
 
-for i_demodulation_2 in range(len(sign_ifft_demodulation)):
+for i_demodulation_2 in range(len(sign_ifft_demodulation)):  # метод скользящей средней
     if i_demodulation_2 + 50 < len(sign_ifft_demodulation):
         for i_ten in range(50):
             temp += sign_ifft_demodulation[i_demodulation_2 + i_ten]
     else:
         for i_ten in range(50):
             temp += sign_ifft_demodulation[i_demodulation_2 - i_ten]
-    sign_ifft_demodulation[i_demodulation_2] = temp / 50
+    method_of_avg.append(temp / 50)
     temp = 0
 
+demodulated_signal = []
+for i_demodulation_3 in range(len(method_of_avg)):
+    if method_of_avg[i_demodulation_3] >= 0:
+        demodulated_signal.append(1)
+    else:
+        demodulated_signal.append(0)
 
 
-
-# sign_ifft = np.real(sign_ifft)
-
-#for i_printer in range(len(sign_ifft)):
-#   if i_printer < 3:
-#       print(str(i_printer + 1) + ": " + str(sign_ifft[i_printer]))
-#   if len(sign_ifft) / 2 - 2 < i_printer < len(sign_ifft) / 2 + 2:
-#       print(str(i_printer + 1) + ": " + str(sign_ifft[i_printer]))
-#   if i_printer > len(sign_ifft) - 4:
-#       print(str(i_printer + 1) + ": " + str(sign_ifft[i_printer]))
-
-#for i_temp in range(len(sign_ifft)):
-#    if  40000 > i_temp > 20000:
-#        print(str(i_temp) + ":" + str(sign_ifft[i_temp]))
+start = 0
+finish = 0.3
 
 fig = plt.figure(figsize=(10, 10))
-ax1 = fig.add_subplot(4, 1, 1)
+ax1 = fig.add_subplot(6, 1, 1)
 ax1.set_title('generate Random Binary signal', fontsize=20)
-plt.axis([0, 0.3, -0.5, 1.5])
+plt.axis([start, finish, -0.5, 1.5])
 plt.plot(w, m, 'b')
-fig.tight_layout(h_pad=2.5)
+fig.tight_layout(h_pad=3)
 
-
-ax2 = fig.add_subplot(4, 1, 2)
+ax2 = fig.add_subplot(6, 1, 2)
 ax2.set_title('BPSK Modulation', fontsize=20)  # , fontproperties=zhfont1
-plt.axis([0, 0.3, -1.5, 1.5])
+plt.axis([start, finish, -1.5, 1.5])
 plt.plot(new_w, bpsk, 'r')
 
-ax3 = fig.add_subplot(4, 1, 3)
+ax3 = fig.add_subplot(6, 1, 3)
 ax3.set_title('Принятый сигнал' + " (" + str(length) + "м)", fontsize=20)  # , fontproperties=zhfont1
-plt.axis([length / c, length / c + 0.3, -2, 2])
+plt.axis([start + length / c, length / c + finish, -2, 2])
 plt.plot(new_w, sign_ifft, 'g')
 
-ax4 = fig.add_subplot(4, 1, 4)
-ax4.set_title('Демодуляция' + " (" + str(length) + "м)", fontsize=20)
-plt.axis([length / c, length / c + 0.3, -2, 2])
-plt.plot(new_w, sign_ifft_demodulation, 'y')
+ax4 = fig.add_subplot(6, 1, 4)
+ax4.set_title('Принятый сигнал после умножения на несущий' + " (" + str(length) + "м)", fontsize=20)  # , fontproperties=zhfont1
+plt.axis([start + length / c, length / c + finish, -2, 2])
+plt.plot(new_w, sign_ifft_demodulation, 'm')
+
+ax5 = fig.add_subplot(6, 1, 5)
+ax5.set_title('Метод скользящей средней' + " (" + str(length) + "м)", fontsize=20)
+plt.axis([start + length / c, length / c + finish, -2, 2])
+plt.plot(new_w, method_of_avg, 'y')
+
+ax6 = fig.add_subplot(6, 1, 6)
+ax6.set_title('Демодулированный сигнал' + " (" + str(length) + "м)", fontsize=20)
+plt.axis([start + length / c, length / c + finish, -0.5, 1.5])
+plt.plot(new_w, demodulated_signal, 'c')
+
 plt.show()
