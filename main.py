@@ -152,16 +152,26 @@ for i_checking in range(len(final_array)):
         yes += 1
     else:
         no += 1
-print(len(final_array))
-print("Совпавшие значения" + ":" + str(yes))
-print("Ошибки" + ":" + str(no))
 
-for teast_i in range(len(final_array)):
-    if final_array[teast_i] == a[teast_i]:
-        answer = "YES"
-    else:
-        answer = "NO"
-    print(str(a[teast_i]) + "  " + str(final_array[teast_i]) + " : " + answer)
+
+print("Количество рандомно сгенерированных значений: " + str(len(a)))
+print("Совпавшие значения: " + str(yes))
+print("Ошибки: " + str(no))
+print("Вероятность битовой ошибки: " + str(no / (size * 20) * 100) + "%")
+
+
+
+
+
+
+
+
+#for teast_i in range(len(final_array)):
+#    if final_array[teast_i] == a[teast_i]:
+#        answer = "YES"
+#    else:
+#        answer = "NO"
+#    print(str(a[teast_i]) + "  " + str(final_array[teast_i]) + " : " + answer)
 
 
 
