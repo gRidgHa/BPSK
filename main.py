@@ -1,3 +1,5 @@
+import random
+from random import randint
 from statistics import mean
 
 import numpy as np
@@ -105,8 +107,33 @@ for i4 in range(len(bpsk_fft)):
         sign[i4] = 0
 
 sign_ifft = scipy.fft.ifft(sign)  # Принятый сигнал после обратного преобразования Фурье
-sign_ifft_demodulation = []
 
+noise = []
+noise_diapazon = 9
+for i_noise in range(n):  # заполнение массива шума
+    noise.append(random.uniform(-noise_diapazon, noise_diapazon))
+
+noise_avg = 0
+for i_noise_avg in range(len(noise)):
+    noise_avg += noise[i_noise_avg] ** 2
+noise_avg = math.sqrt(noise_avg)  # среднеквадратичное значение шума
+
+sign_ifft_avg = 0
+for i_sign_ifft_avg in range(len(sign_ifft)):
+    if i_sign_ifft_avg > length / c * sampling_freq and i_sign_ifft_avg < length / c * sampling_freq + size * sampling_freq:
+        sign_ifft_avg += sign_ifft[i_sign_ifft_avg] ** 2
+sign_ifft_avg = math.sqrt(sign_ifft_avg)  # среднеквадратичное значение принятого сигнала
+
+signal_noise = round(sign_ifft_avg / noise_avg, 3)
+print(signal_noise)
+
+counter = 0
+for i_noise_add in range(len(sign_ifft)):  # наложение шума на принятый сигнал
+    if i_noise_add > length / c * sampling_freq and i_noise_add < length / c * sampling_freq + size * sampling_freq:
+        sign_ifft[i_noise_add] += noise[counter]
+        counter += 1
+
+sign_ifft_demodulation = []
 for i_demodulation in range(len(sign_ifft)):
     sign_ifft_demodulation.append(sign_ifft[i_demodulation] * np.cos(2 * pi * fc * new_w[i_demodulation]))
 
@@ -114,13 +141,13 @@ temp = 0
 method_of_avg = []
 
 for i_demodulation_2 in range(len(sign_ifft_demodulation)):  # метод скользящей средней
-    if i_demodulation_2 + 10 < len(sign_ifft_demodulation):
-        for i_ten in range(10):
+    if i_demodulation_2 + 50 < len(sign_ifft_demodulation):
+        for i_ten in range(50):
             temp += sign_ifft_demodulation[i_demodulation_2 + i_ten]
     else:
-        for i_ten in range(10):
+        for i_ten in range(50):
             temp += sign_ifft_demodulation[i_demodulation_2 - i_ten]
-    method_of_avg.append(temp / 10)
+    method_of_avg.append(temp / 50)
     temp = 0
 
 demodulated_signal = []
@@ -130,20 +157,16 @@ for i_demodulation_3 in range(len(method_of_avg)):
     else:
         demodulated_signal.append(0)
 
-
 counter = 0
 amount = 0
 final_array = []
 temp_final_array = []
 zero_or_one = demodulated_signal[int(length / c * sampling_freq) + 1]
 
-#for i_demodulation_4 in range(len(demodulated_signal)): # Получение массива 0 и 1 из демодулированного сигнала
-#    if i_demodulation_4 > length / c * sampling_freq and i_demodulation_4 < length / c * sampling_freq + size * sampling_freq:
 hundred = 0
 for i_demodulation_4 in range(size * 20):
     final_array.append(demodulated_signal[int(length / c * sampling_freq) + 50 + hundred])
     hundred += 100
-
 
 yes = 0
 no = 0
@@ -152,40 +175,38 @@ for i_checking in range(len(final_array)):
         yes += 1
     else:
         no += 1
-#TODO рассчитать начало сигнала и не опираться на то, что для скользящей средней взято малое кол-во отсчётов
+
+for teast_i in range(len(final_array)):
+    if final_array[teast_i] == a[teast_i]:
+        answer = "YES"
+    else:
+        answer = "NO"
+#    print(str(a[teast_i]) + "  " + str(final_array[teast_i]) + " : " + answer)
+
+# TODO рассчитать начало сигнала и не опираться на то, что для скользящей средней взято малое кол-во отсчётов
+
 
 print("Количество рандомно сгенерированных значений: " + str(len(a)))
 print("Совпавшие значения: " + str(yes))
 print("Ошибки: " + str(no))
-print("Вероятность битовой ошибки: " + str(no / (size * 20) * 100) + "%")
-
-
-
-
-
-
-
-
-#for teast_i in range(len(final_array)):
-#    if final_array[teast_i] == a[teast_i]:
-#        answer = "YES"
-#    else:
-#        answer = "NO"
-#    print(str(a[teast_i]) + "  " + str(final_array[teast_i]) + " : " + answer)
-
-
-
-
-
-
-
+ber = round(no / (size * 20) * 100, 2)
+print("Вероятность битовой ошибки: " + str(ber) + "%")
+if length == 10000:
+    f = open('BER_10km.txt', 'a')
+elif length == 30000:
+    f = open('BER_30km.txt', 'a')
+try:
+    f.write(str(ber) + "\n")
+    f.write(str(signal_noise) + "\n")
+finally:
+    f.close()
 
 start = 0
 finish = 0.3
 
 fig = plt.figure(figsize=(10, 10))
 ax1 = fig.add_subplot(6, 1, 1)
-ax1.set_title('generate Random Binary signal', fontsize=20)
+ax1.set_title('Рандомно сгенерированный бинарный массив из ' + str(size * 20) + ' значений', fontsize=20)
 plt.axis([start, finish, -0.5, 1.5])
 plt.plot(w, m, 'b')
 fig.tight_layout(h_pad=3)
@@ -201,7 +222,8 @@ plt.axis([start + length / c, length / c + finish, -2, 2])
 plt.plot(new_w, sign_ifft, 'g')
 
 ax4 = fig.add_subplot(6, 1, 4)
-ax4.set_title('Принятый сигнал после умножения на несущий' + " (" + str(length) + "м)", fontsize=20)  # , fontproperties=zhfont1
+ax4.set_title('Принятый сигнал после умножения на несущий' + " (" + str(length) + "м)",
+              fontsize=20)  # , fontproperties=zhfont1
 plt.axis([start + length / c, length / c + finish, -2, 2])
 plt.plot(new_w, sign_ifft_demodulation, 'm')
 
@@ -214,5 +236,54 @@ ax6 = fig.add_subplot(6, 1, 6)
 ax6.set_title('Демодулированный сигнал' + " (" + str(length) + "м)", fontsize=20)
 plt.axis([start + length / c, length / c + finish, -0.5, 1.5])
 plt.plot(new_w, demodulated_signal, 'c')
+#//////////////////////////////////////////////////////////////////////////////////
+fig_2 = plt.figure(figsize=(10, 10))
+
+f = open('BER_10km.txt', 'r')
+try:
+    ber_10_x_y = f.readlines()
+finally:
+    f.close()
+
+ber_10_x = []
+ber_10_y = []
+for i_ber_10 in range(len(ber_10_x_y)):
+    if i_ber_10 % 2 == 0:
+        ber_10_x.append(float(ber_10_x_y[i_ber_10]))
+    else:
+        ber_10_y.append(float(ber_10_x_y[i_ber_10]))
+
+f = open('BER_30km.txt', 'r')
+try:
+    ber_30_x_y = f.readlines()
+finally:
+    f.close()
+
+ber_30_x = []
+ber_30_y = []
+for i_ber_30 in range(len(ber_30_x_y)):
+    if i_ber_30 % 2 == 0:
+        ber_30_x.append(float(ber_30_x_y[i_ber_30]))
+    else:
+        ber_30_y.append(float(ber_30_x_y[i_ber_30]))
+
+
+ax11 = fig_2.add_subplot(2, 1, 1)
+ax11.set_title("Отношение сигнал/шум к BER на 10км", fontsize=20)
+plt.axis([0, 1.5, 0, 25])
+plt.plot(ber_10_y, ber_10_x, 'c')
+plt.xlabel('отношение сигнал/шум', fontsize=10)
+plt.ylabel('Вероятность битовой ошибки', fontsize=10)
+
+
+
+
+
+ax12 = fig_2.add_subplot(2, 1, 2)
+ax12.set_title('Отношение сигнал/шум к BER на 30км', fontsize=20)
+plt.axis([0, 1.5, 0, 25])
+plt.plot(ber_30_y, ber_30_x, 'c')
+plt.xlabel('отношение сигнал/шум', fontsize=10)
+plt.ylabel('Вероятность битовой ошибки', fontsize=10)
 
 plt.show()
