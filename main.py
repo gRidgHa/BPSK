@@ -64,6 +64,118 @@ for i3 in range(len(q)):
         fi.append(complex(-1 * q[i3] * length))
 
 
+
+def regular_signal():
+    # time_for_regular_singal = np.arange(0, (30000) / sampling_freq, 1000)
+    coef = 2
+    k_regular = []
+    q_regular = []
+    fi_regular = []
+    w_regular = []
+    w_new_regular = []
+    length_regular = 10000
+    l_moda = 1
+    h_regular = 300 # глубина
+    fc_regular = 300  # Несущая частота
+    zeroes_regular = int(length_regular / c * (1 / sampling_t)) * 2
+    for i_regular in range(1000):  # 1000 отсчётов на 0.5 сек
+        if i_regular == 0:
+            w_regular.append(0)
+        else:
+            w_regular.append(w_regular[i_regular - 1] + sampling_t)
+
+    for i_new_regular in range(1000 + zeroes_regular):
+        if i_new_regular == 0:
+            w_new_regular.append(0)
+        else:
+            w_new_regular.append(w_new_regular[i_new_regular - 1] + sampling_t)
+
+    w_reqular_freq = []
+    for i_regular_freq in range(1000 + zeroes_regular):
+        if i_regular_freq == 0:
+            w_reqular_freq.append(0)
+        else:
+            w_reqular_freq.append(w_reqular_freq[i_regular_freq - 1] + sampling_freq / (1000 + zeroes_regular - 1))
+
+
+    regular_signal = []
+    for i_regular_2 in range(1000):  # 1000 отсчётов на 0.5 сек
+        e = math.e ** (-coef * w_regular[i_regular_2])
+        sig_part = math.sin(2 * pi * fc_regular * w_regular[i_regular_2])
+        regular_signal.append(e * sig_part)
+
+    fig_3 = plt.figure(figsize=(10, 10))
+    ax21 = fig_3.add_subplot(2, 1, 1)
+    ax21.set_title('Исходный сигнал', fontsize=20)
+    plt.axis([0, 0.5, -1.2, 1.2])
+    plt.plot(w_regular, regular_signal, 'c')
+    plt.xlabel('Время, сек.', fontsize=10)
+    plt.ylabel('Давление, произв. единицы', fontsize=10)
+
+    for i_regular_3 in range(len(w_reqular_freq)):
+        if i_regular_3 <= len(w_reqular_freq) / 2:
+            k_regular.append(2 * pi * w_reqular_freq[i_regular_3] / c)
+        else:
+            k_regular.append(2 * pi * w_reqular_freq[len(w_reqular_freq) - i_regular_3] / c)
+
+    for i_regular_4 in range(len(k_regular)):
+        q_regular.append((k_regular[i_regular_4] ** 2 - pi ** 2 / h_regular ** 2 * (l_moda - 0.5) ** 2) ** 0.5)
+
+
+    for i_regular_5 in range(len(q_regular)):
+        if i_regular_5 <= len(q_regular) / 2:
+            fi_regular.append(q_regular[i_regular_5] * length_regular)
+        else:
+            fi_regular.append(-1 * q_regular[i_regular_5] * length_regular)
+
+    for i_regular_zeroes in range(zeroes_regular):  # Добивание нулями
+        regular_signal.append(0)
+
+    regular_signal_fft = scipy.fft.fft(regular_signal)
+
+    regular_zeroes = 0
+    for i_regular_zer in range(int(len(regular_signal_fft) / 2)):  # занулене
+        if isinstance(q_regular[i_regular_zer], complex):  # если значение q для значения спектра излучённого сигнала явл комплексным, то значение спектра зануляется
+            regular_signal_fft[i_regular_zer] = 0
+        if 2 * pi * w_new_regular[i_regular_zer] / q_regular[i_regular_zer].real + 0.0000000001 > 1700:
+            regular_signal_fft[i_regular_zer] = 0
+        if regular_signal_fft[i_regular_zer] == 0:
+            regular_zeroes += 1
+
+    for i_regular_zer_2 in range(len(regular_signal_fft)):
+        if i_regular_zer_2 > len(regular_signal_fft) - regular_zeroes:
+            regular_signal_fft[i_regular_zer_2] = 0
+
+
+    regular_sign = []
+    for i_regular_6 in range(len(regular_signal_fft)):
+        if isinstance(fi_regular[i_regular_6], complex):
+            fi_var = 0
+        else:
+            fi_var = fi_regular[i_regular_6]
+        regular_sign.append(regular_signal_fft[i_regular_6] * pow(math.e, (-1j * fi_var))) # Спектр принятого сигнала
+
+    regular_sign_ifft = scipy.fft.ifft(regular_sign)  # Принятый сигнал после обратного преобразования Фурье
+
+
+
+    ax22 = fig_3.add_subplot(2, 1, 2)
+    ax22.set_title('Принятый сигнал', fontsize=20)
+    plt.axis([length_regular / c - 0.01, length_regular / c + 0.6, -1.2, 1.2])
+    plt.plot(w_new_regular, regular_sign_ifft, 'g')
+    plt.xlabel('Время, сек.', fontsize=10)
+    plt.ylabel('Давление, произв. единицы', fontsize=10)
+
+    plt.text(length_regular / c, -1.9, 'Частота = ' + str(fc_regular) + "Гц "
+                                        'Длина передачи = ' + str(length_regular) + "м \n"
+                                        + 'Глубина = ' + str(h_regular) + " м "
+                                        + "мода " + str(l_moda), fontsize=20)
+    plt.show()
+
+
+
+
+
 # Random generate signal sequence
 a = np.random.randint(0, 2, size * 20)  # массив значений 0 и 1
 m = np.zeros(len(w), dtype=np.float32)
@@ -302,3 +414,5 @@ if length == 10000 or length == 30000:
     plt.ylabel('Вероятность битовой ошибки в %', fontsize=10)
 
 plt.show()
+regular_signal()
+
